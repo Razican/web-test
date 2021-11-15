@@ -41,22 +41,6 @@ jobs:
           command: clippy
           args: --bins --lib --tests --benches --verbose
 
-  rust_backend_build:
-    name: Backend build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2.4.0
-      - uses: actions-rs/toolchain@v1.0.7
-        with:
-          toolchain: stable
-          override: true
-          profile: minimal
-      - run: apt-get install libpq-dev pkg-config libssl-dev -y
-      - uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --verbose
-
   rust_frontend_build:
     name: Backend build
     runs-on: ubuntu-latest
@@ -69,13 +53,45 @@ jobs:
           profile: minimal
       - run: curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
       - run: echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
-      - run: apt-get update
-      - run: apt-get install pkg-config libssl-dev yarn -y
+      - run: sudo apt-get update
+      - run: sudo apt-get install yarn -y
       - run: rustup target add wasm32-unknown-unknown
       - run: cargo install trunk wasm-bindgen-cli
       - run: cd ./frontend
       - run: yarn install
       - run: trunk build
+
+  rust_backend_build:
+    name: Backend build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2.4.0
+      - uses: actions-rs/toolchain@v1.0.7
+        with:
+          toolchain: stable
+          override: true
+          profile: minimal
+      - run: sudo apt-get install libpq-dev pkg-config libssl-dev -y
+      - uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --verbose
+
+  rust_documentation:
+    name: Documentation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2.4.0
+      - uses: actions-rs/toolchain@v1.0.7
+        with:
+          toolchain: stable
+          override: true
+          profile: minimal
+      - name: Generate documentation
+        uses: actions-rs/cargo@v1
+        with:
+          command: doc
+          args: --verbose
 
   unit_tests:
     name: Tests on Linux
@@ -105,6 +121,16 @@ jobs:
           toolchain: stable
           override: true
           profile: minimal
+      - run: curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
+      - run: echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
+      - run: sudo apt-get update
+      - run: sudo apt-get install libpq-dev pkg-config libssl-dev yarn -y
+      - run: rustup target add wasm32-unknown-unknown
+      - run: cargo install trunk wasm-bindgen-cli
+      - run: cd ./frontend
+      - run: yarn install
+      - run: trunk build
+      - run: cd ../
       - uses: actions-rs/cargo@v1
         with:
           command: install
@@ -114,20 +140,4 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --verbose
-
-  rust_documentation:
-    name: Documentation
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2.4.0
-      - uses: actions-rs/toolchain@v1.0.7
-        with:
-          toolchain: stable
-          override: true
-          profile: minimal
-      - name: Generate documentation
-        uses: actions-rs/cargo@v1
-        with:
-          command: doc
           args: --verbose
