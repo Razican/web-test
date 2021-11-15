@@ -51,8 +51,8 @@ rust_clippy_check:
 rust_frontend_build:
   stage: build
   before_script:
-    - curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
-    - echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
+    - curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -
+    - echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list
     - apt-get update
     - apt-get install yarn -y
     - rustup target add wasm32-unknown-unknown
@@ -83,8 +83,8 @@ unit_tests:
   variables:
     DIST_FOLDER: frontend/dist
   before_script:
-    - curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
-    - echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
+    - curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -
+    - echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list
     - apt-get update
     - apt-get install libpq-dev pkg-config libssl-dev yarn -y
     - rustup target add wasm32-unknown-unknown

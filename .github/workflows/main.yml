@@ -42,7 +42,7 @@ jobs:
           args: --bins --lib --tests --benches --verbose
 
   rust_frontend_build:
-    name: Backend build
+    name: Frontend build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2.4.0
