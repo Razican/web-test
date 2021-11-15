@@ -43,8 +43,6 @@ rust_format_check:
 rust_clippy_check:
   stage: build
   before_script:
-    - apt-get update
-    - apt-get install libpq-dev pkg-config libssl-dev -y
     - rustup component add clippy
   script:
     - cargo clippy --bins --lib --tests --benches --verbose
@@ -56,7 +54,7 @@ rust_frontend_build:
     - curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
     - echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
     - apt-get update
-    - apt-get install pkg-config libssl-dev yarn -y
+    - apt-get install yarn -y
     - rustup target add wasm32-unknown-unknown
     - cargo install trunk wasm-bindgen-cli
   script:

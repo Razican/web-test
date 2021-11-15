@@ -9,21 +9,6 @@ on:
 name: Continuous integration
 
 jobs:
-  unit_tests:
-    name: Tests on Linux
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2.4.0
-      - uses: actions-rs/toolchain@v1.0.7
-        with:
-          toolchain: stable
-          override: true
-          profile: minimal
-      - uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --verbose
-
   rust_format_check:
     name: Rustfmt
     runs-on: ubuntu-latest
@@ -55,6 +40,81 @@ jobs:
         with:
           command: clippy
           args: --bins --lib --tests --benches --verbose
+
+  rust_backend_build:
+    name: Backend build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2.4.0
+      - uses: actions-rs/toolchain@v1.0.7
+        with:
+          toolchain: stable
+          override: true
+          profile: minimal
+      - run: apt-get install libpq-dev pkg-config libssl-dev -y
+      - uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --verbose
+
+  rust_frontend_build:
+    name: Backend build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2.4.0
+      - uses: actions-rs/toolchain@v1.0.7
+        with:
+          toolchain: stable
+          override: true
+          profile: minimal
+      - run: curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
+      - run: echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
+      - run: apt-get update
+      - run: apt-get install pkg-config libssl-dev yarn -y
+      - run: rustup target add wasm32-unknown-unknown
+      - run: cargo install trunk wasm-bindgen-cli
+      - run: cd ./frontend
+      - run: yarn install
+      - run: trunk build
+
+  unit_tests:
+    name: Tests on Linux
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_DB: my_support
+          POSTGRES_PASSWORD: 12345
+          POSTGRES_PORT: 5432
+          POSTGRES_USER: sup_user
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgres://sup_user:12345@postgres/my_support
+      ROCKET_DATABASES: '{main={url="postgres://sup_user:12345@postgres/my_support",pool_size=1}}'
+    steps:
+      - uses: actions/checkout@v2.4.0
+      - uses: actions-rs/toolchain@v1.0.7
+        with:
+          toolchain: stable
+          override: true
+          profile: minimal
+      - uses: actions-rs/cargo@v1
+        with:
+          command: install
+          args: diesel_cli --no-default-features --features "postgres"
+      - run: diesel setup --locked-schema
+      - run: diesel migration run --locked-schema
+      - uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --verbose
 
   rust_documentation:
     name: Documentation
