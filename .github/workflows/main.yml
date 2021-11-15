@@ -1,4 +1,3 @@
-name: Main workflows
 on:
   pull_request:
     branches:
@@ -55,7 +54,7 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: clippy
-          args:  --bins --lib --tests --benches --verbose
+          args: --bins --lib --tests --benches --verbose
 
   rust_documentation:
     name: Documentation
