@@ -73,7 +73,7 @@ rust_documentation:
 unit_tests:
   stage: test
   variables:
-    DIST_FOLDER="frontend/dist"
+    DIST_FOLDER: frontend/dist
   before_script:
     # - apk -U upgrade
     # - apk add postgresql libpq postgresql-dev musl-dev openssl-dev
