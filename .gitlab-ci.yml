@@ -50,7 +50,7 @@ rust_clippy_check:
     - cargo clippy --bins --lib --tests --benches --verbose
 
 # Build the crates
-rust_clippy_check:
+rust_build_check:
   stage: build
   before_script:
     - apt-get update
