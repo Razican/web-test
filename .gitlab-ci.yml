@@ -49,28 +49,34 @@ rust_clippy_check:
   script:
     - cargo clippy --bins --lib --tests --benches --verbose
 
-# Build the crates
-rust_build_check:
+rust_frontend_build:
   stage: build
   before_script:
+    - curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
+    - echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
     - apt-get update
-    - apt-get install libpq-dev pkg-config libssl-dev -y
+    - apt-get install pkg-config libssl-dev yarn -y
     - rustup target add wasm32-unknown-unknown
     - cargo install trunk wasm-bindgen-cli
   script:
     - cd ./frontend
+    - yarn install
     - trunk build
-    - cd ../
+
+# Build the backend
+rust_backend_build:
+  stage: build
+  before_script:
+    - apt-get update
+    - apt-get install libpq-dev pkg-config libssl-dev -y
+  script:
     - cargo build --verbose
 
 # Check Rust documentation generation
 rust_documentation:
   stage: build
-  # before_script:
-  #   - apk -U upgrade
-  #   - apk add postgresql libpq postgresql-dev musl-dev openssl-dev
   script:
-    - cargo doc -v
+    - cargo doc --verbose
 
 # Run the unit tests
 unit_tests:
@@ -78,16 +84,19 @@ unit_tests:
   variables:
     DIST_FOLDER: frontend/dist
   before_script:
+    - curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
+    - echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
     - apt-get update
-    - apt-get install libpq-dev pkg-config libssl-dev -y
-    - cargo install diesel_cli --no-default-features --features "postgres"
-    - diesel setup --locked-schema
-    - diesel migration run --locked-schema
+    - apt-get install libpq-dev pkg-config libssl-dev yarn -y
     - rustup target add wasm32-unknown-unknown
     - cargo install trunk wasm-bindgen-cli
     - cd ./frontend
+    - yarn install
     - trunk build
     - cd ../
+    - cargo install diesel_cli --no-default-features --features "postgres"
+    - diesel setup --locked-schema
+    - diesel migration run --locked-schema
     - export PGHOST=postgres
     - until (echo > /dev/tcp/$PGHOST/5432) >/dev/null 2>&1; do >&2 echo "service $PGHOST not ready... sleeping"; sleep 5; done
     - echo "connected to... $PGHOST"
