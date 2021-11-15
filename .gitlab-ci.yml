@@ -37,7 +37,7 @@ rust_format_check:
   before_script:
     - rustup component add rustfmt
   script:
-    - cargo fmt --verbose -- --check
+    - cargo fmt --all --verbose -- --check
 
 # Run clippy
 rust_clippy_check:
@@ -49,6 +49,7 @@ rust_clippy_check:
   script:
     - cargo clippy --bins --lib --tests --benches --verbose
 
+# Build the frontend
 rust_frontend_build:
   stage: build
   before_script:
