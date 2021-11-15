@@ -10,6 +10,14 @@ description = """
 Service Management application. Backend crate.
 """
 
+[[bin]]
+name = "backend"
+path = "src/main.rs"
+
+[lib]
+name = "backend_core"
+path = "src/lib.rs"
+
 [features]
 
 [dependencies]
