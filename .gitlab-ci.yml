@@ -1,0 +1,70 @@
+image: "rust:slim"
+
+services:
+  - name: postgres:latest
+    alias: postgres
+
+variables:
+  POSTGRES_DB: my_support
+  POSTGRES_USER: sup_user
+  POSTGRES_PASSWORD: 12345
+  POSTGRES_HOST_AUTH_METHOD: trust
+  DATABASE_URL: postgres://sup_user:12345@postgres/my_support
+  ROCKET_DATABASES: '{main={url="postgres://sup_user:12345@postgres/my_support",pool_size=1}}'
+
+stages:
+  - setup
+  - build
+  - test
+
+# This waits until the database is available and running, and runs migrations
+setup_db:
+  stage: setup
+  before_script:
+    - export PGHOST=postgres
+    - while ! nc -z $PGHOST 5432 </dev/null; do echo "service $PGHOST not ready... sleeping"; sleep 5; done
+    - echo "connected to... $PGHOST"
+  script:
+    - cargo install diesel_cli --no-default-features --features "postgres"
+    - diesel setup --locked-schema
+    - diesel migration run --locked-schema
+
+# Test the Rust format
+rust_format_check:
+  stage: build
+  before_script:
+    - rustup component add rustfmt
+  script:
+    - cargo fmt --verbose -- --check
+
+# Run clippy
+rust_clippy_check:
+  stage: build
+  before_script:
+    - rustup component add clippy
+  script:
+    - cargo clippy --bins --lib --tests --benches --verbose
+
+# Check Rust documentation generation
+rust_documentation:
+  stage: build
+  # before_script:
+  #   - apk -U upgrade
+  #   - apk add postgresql libpq postgresql-dev musl-dev openssl-dev
+  script:
+    - cargo doc -v
+    # TODO: upload backend documentation somewhere
+
+# Run the unit tests
+unit_tests:
+  stage: test
+  variables:
+    DIST_FOLDER: ../frontend/dist
+  before_script:
+    # - apk -U upgrade
+    # - apk add postgresql libpq postgresql-dev musl-dev openssl-dev
+    - cargo install diesel_cli --no-default-features --features "postgres"
+    - diesel setup --locked-schema
+    - diesel migration run --locked-schema
+  script:
+    - cargo test --verbose
