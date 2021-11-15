@@ -21,6 +21,7 @@ stages:
 setup_db:
   stage: setup
   before_script:
+    - apt-get update
     - apt-get install libpq-dev pkg-config libssl-dev -y
     - export PGHOST=postgres
     - until (echo > /dev/tcp/$PGHOST/5432) >/dev/null 2>&1; do >&2 echo "service $PGHOST not ready... sleeping"; sleep 5; done
@@ -42,6 +43,7 @@ rust_format_check:
 rust_clippy_check:
   stage: build
   before_script:
+    - apt-get update
     - apt-get install libpq-dev pkg-config libssl-dev -y
     - rustup component add clippy
   script:
@@ -51,6 +53,7 @@ rust_clippy_check:
 rust_clippy_check:
   stage: build
   before_script:
+    - apt-get update
     - apt-get install libpq-dev pkg-config libssl-dev -y
     - rustup target add wasm32-unknown-unknown
     - cargo install trunk wasm-bindgen-cli
@@ -75,8 +78,8 @@ unit_tests:
   variables:
     DIST_FOLDER: frontend/dist
   before_script:
-    # - apk -U upgrade
-    # - apk add postgresql libpq postgresql-dev musl-dev openssl-dev
+    - apt-get update
+    - apt-get install libpq-dev pkg-config libssl-dev -y
     - cargo install diesel_cli --no-default-features --features "postgres"
     - diesel setup --locked-schema
     - diesel migration run --locked-schema
