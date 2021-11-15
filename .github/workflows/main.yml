@@ -41,6 +41,38 @@ jobs:
           command: clippy
           args: --bins --lib --tests --benches --verbose
 
+  rust_documentation:
+    name: Documentation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2.4.0
+      - uses: actions-rs/toolchain@v1.0.7
+        with:
+          toolchain: stable
+          override: true
+          profile: minimal
+      - name: Generate documentation
+        uses: actions-rs/cargo@v1
+        with:
+          command: doc
+          args: --verbose
+
+  rust_backend_build:
+    name: Backend build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2.4.0
+      - uses: actions-rs/toolchain@v1.0.7
+        with:
+          toolchain: stable
+          override: true
+          profile: minimal
+      - run: sudo apt-get install libpq-dev pkg-config libssl-dev -y
+      - uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --verbose
+
   rust_frontend_build:
     name: Frontend build
     runs-on: ubuntu-latest
@@ -62,38 +94,6 @@ jobs:
           yarn install
           trunk build
 
-  rust_backend_build:
-    name: Backend build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2.4.0
-      - uses: actions-rs/toolchain@v1.0.7
-        with:
-          toolchain: stable
-          override: true
-          profile: minimal
-      - run: sudo apt-get install libpq-dev pkg-config libssl-dev -y
-      - uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --verbose
-
-  rust_documentation:
-    name: Documentation
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2.4.0
-      - uses: actions-rs/toolchain@v1.0.7
-        with:
-          toolchain: stable
-          override: true
-          profile: minimal
-      - name: Generate documentation
-        uses: actions-rs/cargo@v1
-        with:
-          command: doc
-          args: --verbose
-
   unit_tests:
     name: Tests on Linux
     runs-on: ubuntu-latest
@@ -113,8 +113,8 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     env:
-      DATABASE_URL: postgres://sup_user:12345@postgres/my_support
-      ROCKET_DATABASES: '{main={url="postgres://sup_user:12345@postgres/my_support",pool_size=1}}'
+      DATABASE_URL: postgres://sup_user:12345@localhost/my_support
+      ROCKET_DATABASES: '{main={url="postgres://sup_user:12345@localhost/my_support",pool_size=1}}'
     steps:
       - uses: actions/checkout@v2.4.0
       - uses: actions-rs/toolchain@v1.0.7

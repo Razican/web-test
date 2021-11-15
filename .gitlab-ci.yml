@@ -47,6 +47,21 @@ rust_clippy_check:
   script:
     - cargo clippy --bins --lib --tests --benches --verbose
 
+# Check Rust documentation generation
+rust_documentation:
+  stage: build
+  script:
+    - cargo doc --verbose
+
+# Build the backend
+rust_backend_build:
+  stage: build
+  before_script:
+    - apt-get update
+    - apt-get install libpq-dev pkg-config libssl-dev -y
+  script:
+    - cargo build --verbose
+
 # Build the frontend
 rust_frontend_build:
   stage: build
@@ -61,21 +76,6 @@ rust_frontend_build:
     - cd ./frontend
     - yarn install
     - trunk build
-
-# Build the backend
-rust_backend_build:
-  stage: build
-  before_script:
-    - apt-get update
-    - apt-get install libpq-dev pkg-config libssl-dev -y
-  script:
-    - cargo build --verbose
-
-# Check Rust documentation generation
-rust_documentation:
-  stage: build
-  script:
-    - cargo doc --verbose
 
 # Run the unit tests
 unit_tests:
