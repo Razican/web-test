@@ -15,3 +15,13 @@ Service Management application. Backend crate.
 [dependencies]
 dotenv = "0.15.0"
 rocket = "0.5.0-rc.1"
+chrono = "0.4.19"
+uuid = "0.8.2"
+
+[dependencies.rocket_sync_db_pools]
+version = "0.1.0-rc.1"
+features = ["diesel_postgres_pool"]
+
+[dependencies.diesel]
+version = "1.4.8"
+features = ["postgres", "uuidv07", "chrono"]

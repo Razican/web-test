@@ -7,8 +7,9 @@ license = "MIT OR Apache-2.0"
 authors = ["Iban Eguia Moraza <razican@protonmail.ch>"]
 repository = "https://gitlab.com/Razican/my_support"
 description = """
-Service Management application. Frontend crate
+Service Management application. Frontend crate.
 """
 
 [dependencies]
+anyhow = "1.0.45"
 yew = "0.18.0"

@@ -6,6 +6,9 @@ mod api;
 mod db;
 mod frontend;
 
+#[macro_use]
+extern crate diesel;
+
 /// Entry point of the backend
 ///
 /// This function will configure the Rocket framework and launch it. It is
@@ -17,4 +20,5 @@ fn launch() -> _ {
     rocket::build()
         .mount("/", frontend::routes())
         .mount("/api/v1", api::routes())
+        .attach(db::Connection::fairing())
 }

@@ -1,0 +1,4 @@
+[print_schema]
+file = "backend/src/db/schema.rs"
+with_docs = true
+import_types = []

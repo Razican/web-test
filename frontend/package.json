@@ -1,0 +1,14 @@
+{
+  "name": "frontend",
+  "version": "0.1.0",
+  "description": "Service Management application. Frontend crate.",
+  "main": "index.js",
+  "repository": "https://gitlab.com/Razican/my_support",
+  "author": "Iban Eguia Moraza <razican@protonmail.ch>",
+  "license": "Apache-2.0/MIT",
+  "private": true,
+  "dependencies": {
+    "@popperjs/core": "^2.10.2",
+    "bootstrap": "^5.1.3"
+  }
+}
