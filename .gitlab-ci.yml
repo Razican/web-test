@@ -21,8 +21,9 @@ stages:
 setup_db:
   stage: setup
   before_script:
+    - apt-get install libpq-dev pkg-config libssl-dev -y
     - export PGHOST=postgres
-    - while ! nc -z $PGHOST 5432 </dev/null; do echo "service $PGHOST not ready... sleeping"; sleep 5; done
+    - until (echo > /dev/tcp/$PGHOST/5432) >/dev/null 2>&1; do >&2 echo "service $PGHOST not ready... sleeping"; sleep 5; done
     - echo "connected to... $PGHOST"
   script:
     - cargo install diesel_cli --no-default-features --features "postgres"
@@ -41,9 +42,23 @@ rust_format_check:
 rust_clippy_check:
   stage: build
   before_script:
+    - apt-get install libpq-dev pkg-config libssl-dev -y
     - rustup component add clippy
   script:
     - cargo clippy --bins --lib --tests --benches --verbose
+
+# Build the crates
+rust_clippy_check:
+  stage: build
+  before_script:
+    - apt-get install libpq-dev pkg-config libssl-dev -y
+    - rustup target add wasm32-unknown-unknown
+    - cargo install trunk wasm-bindgen-cli
+  script:
+    - cd ./frontend
+    - trunk build
+    - cd ../
+    - cargo build --verbose
 
 # Check Rust documentation generation
 rust_documentation:
@@ -53,18 +68,25 @@ rust_documentation:
   #   - apk add postgresql libpq postgresql-dev musl-dev openssl-dev
   script:
     - cargo doc -v
-    # TODO: upload backend documentation somewhere
 
 # Run the unit tests
 unit_tests:
   stage: test
   variables:
-    DIST_FOLDER: ../frontend/dist
+    DIST_FOLDER="frontend/dist"
   before_script:
     # - apk -U upgrade
     # - apk add postgresql libpq postgresql-dev musl-dev openssl-dev
     - cargo install diesel_cli --no-default-features --features "postgres"
     - diesel setup --locked-schema
     - diesel migration run --locked-schema
+    - rustup target add wasm32-unknown-unknown
+    - cargo install trunk wasm-bindgen-cli
+    - cd ./frontend
+    - trunk build
+    - cd ../
+    - export PGHOST=postgres
+    - until (echo > /dev/tcp/$PGHOST/5432) >/dev/null 2>&1; do >&2 echo "service $PGHOST not ready... sleeping"; sleep 5; done
+    - echo "connected to... $PGHOST"
   script:
     - cargo test --verbose
