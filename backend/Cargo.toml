@@ -22,9 +22,15 @@ path = "src/lib.rs"
 
 [dependencies]
 dotenv = "0.15.0"
-rocket = "0.5.0-rc.1"
+rocket = { version = "0.5.0-rc.1", features = ["json"] }
 chrono = "0.4.19"
 uuid = "0.8.2"
+lettre = "0.10.0-rc.4"
+serde = { version = "1.0.130", features = ["derive"] }
+regex = "1.5.4"
+once_cell = "1.8.0"
+rand = "0.8.4"
+anyhow = "1.0.51"
 
 [dependencies.rocket_sync_db_pools]
 version = "0.1.0-rc.1"

@@ -10,12 +10,12 @@ fn establish_connection() -> PgConnection {
         .unwrap_or_else(|e| panic!("error connecting to {}: {}", database_url, e))
 }
 
-/// Sunny day unit test for the `retrieve_user_with_email()` function.
+/// Sunny day unit test for the `get_with_email()` function.
 #[test]
-fn ut_sunny_retrieve_user_with_email() {
+fn ut_sunny_get_with_email() {
     let mut conn = establish_connection();
 
-    let user = retrieve_user_with_email(&mut conn, "alice@example.com")
+    let user = get_with_email(&mut conn, "alice@example.com")
         .expect("error retrieving user from database");
     assert!(user.is_some(), "Alice was not in the database");
     assert_eq!(
@@ -24,8 +24,8 @@ fn ut_sunny_retrieve_user_with_email() {
         "email for Bob doesn't match"
     );
 
-    let user = retrieve_user_with_email(&mut conn, "bob@example.com")
-        .expect("error retrieving user from database");
+    let user =
+        get_with_email(&mut conn, "bob@example.com").expect("error retrieving user from database");
     assert!(user.is_some(), "Bob was not in the database");
     assert_eq!(
         user.unwrap().email,
@@ -34,20 +34,20 @@ fn ut_sunny_retrieve_user_with_email() {
     );
 }
 
-/// Rainy day unit test for the `retrieve_user_with_email()` function.
+/// Rainy day unit test for the `get_with_email()` function.
 #[test]
-fn ut_rainy_retrieve_user_with_email() {
+fn ut_rainy_user_get_with_email() {
     let mut conn = establish_connection();
 
-    let user = retrieve_user_with_email(&mut conn, "none@undefined.com")
+    let user = get_with_email(&mut conn, "none@undefined.com")
         .expect("error retrieving user from database");
     assert!(
         user.is_none(),
         "some user was found with a nonexistant email"
     );
 
-    let user = retrieve_user_with_email(&mut conn, "not!an:email")
-        .expect("error retrieving user from database");
+    let user =
+        get_with_email(&mut conn, "not!an:email").expect("error retrieving user from database");
     assert!(
         user.is_none(),
         "some user was found with an incorrect email"

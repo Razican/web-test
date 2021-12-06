@@ -1,3 +1,4 @@
+use crate::db::schema::sys_email_registration;
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
@@ -24,4 +25,20 @@ pub struct User {
     pub created_on: DateTime<Utc>,
     /// The timestamp for the last update of the user record.
     pub updated_on: DateTime<Utc>,
+}
+
+/// Structure representing an email registration in the database.
+#[derive(Debug, Clone, Queryable)]
+pub struct EmailRegistration {
+    pub code: String,
+    pub email: String,
+    pub created_on: DateTime<Utc>,
+}
+
+/// Insertable email registration.
+#[derive(Debug, Clone, Insertable)]
+#[table_name = "sys_email_registration"]
+pub struct NewEmailRegistration<'n> {
+    pub code: &'n str,
+    pub email: &'n str,
 }
