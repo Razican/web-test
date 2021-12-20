@@ -1,12 +1,7 @@
-use yew::{
-    format::{Nothing, Text},
-    html,
-    services::{
-        fetch::{FetchTask, Request, Response},
-        FetchService,
-    },
-    Component, ComponentLink, Html, InputData, ShouldRender,
-};
+use reqwasm::http::Request;
+use wasm_bindgen::JsCast;
+use web_sys::HtmlInputElement;
+use yew::{html, Component, Context, Html, InputEvent};
 
 /// The messages the component can use to update itself.
 #[derive(Debug)]
@@ -14,42 +9,38 @@ pub enum Msg {
     /// This message contains a new input email.
     InputEmail(String),
     /// This message contains a text response from the backend.
-    StringResponse(Text),
+    StringResponse(Result<String, reqwasm::Error>),
 }
 
 /// Hello is a component that says hello to the name you provide.
 #[derive(Debug)]
 pub struct Hello {
-    link: ComponentLink<Self>,
     hello: String,
-    fetch_task: Option<FetchTask>,
 }
 
 impl Component for Hello {
     type Message = Msg;
     type Properties = ();
 
-    fn create(_props: Self::Properties, link: ComponentLink<Self>) -> Self {
+    fn create(_context: &Context<Self>) -> Self {
         Self {
-            link,
             hello: String::new(),
-            fetch_task: None,
         }
     }
 
-    fn update(&mut self, msg: Self::Message) -> ShouldRender {
+    fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             Msg::InputEmail(name) if !name.is_empty() => {
-                let request = Request::get(format!("/api/v1/hello/{}", name))
-                    .body(Nothing)
-                    .expect("Could not build request.");
+                ctx.link().send_future(async move {
+                    let response = Request::get(&format!("/api/v1/hello/{}", name))
+                        .send()
+                        .await
+                        .unwrap();
 
-                let callback = self
-                    .link
-                    .callback(|response: Response<Text>| Msg::StringResponse(response.into_body()));
+                    let res = response.text().await;
 
-                let task = FetchService::fetch(request, callback).expect("failed to start request");
-                self.fetch_task = Some(task);
+                    Msg::StringResponse(res)
+                });
 
                 false
             }
@@ -58,7 +49,6 @@ impl Component for Hello {
                 true
             }
             Msg::StringResponse(Ok(hello)) => {
-                self.fetch_task = None;
                 if hello != self.hello {
                     self.hello = hello;
                     true
@@ -70,12 +60,12 @@ impl Component for Hello {
         }
     }
 
-    fn change(&mut self, _props: Self::Properties) -> ShouldRender {
-        false
-    }
+    fn view(&self, ctx: &Context<Self>) -> Html {
+        let email_input = ctx.link().callback(|e: InputEvent| {
+            let target = e.target().unwrap().dyn_into::<HtmlInputElement>().unwrap();
 
-    fn view(&self) -> Html {
-        let email_input = self.link.callback(|e: InputData| Msg::InputEmail(e.value));
+            Msg::InputEmail(target.value())
+        });
 
         html! {
             <div class="container">
