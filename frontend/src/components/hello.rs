@@ -22,7 +22,7 @@ impl Component for Hello {
     type Message = Msg;
     type Properties = ();
 
-    fn create(_context: &Context<Self>) -> Self {
+    fn create(_ctx: &Context<Self>) -> Self {
         Self {
             hello: String::new(),
         }
