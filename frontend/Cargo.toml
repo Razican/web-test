@@ -19,5 +19,5 @@ serde_json = "1.0.74"
 wasm-bindgen = { version = "0.2.78", features = ["serde-serialize"] }
 wasm-bindgen-futures = "0.4.28"
 web-sys = "0.3.55"
-yew = { git = "https://github.com/yewstack/yew.git" }
-yew-router = { git = "https://github.com/yewstack/yew.git" }
+yew = "0.19.3"
+yew-router = "0.16.0"

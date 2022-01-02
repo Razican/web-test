@@ -8,7 +8,7 @@ use yew_router::prelude::*;
 
 #[function_component(Nav)]
 pub fn nav() -> Html {
-    let history = use_history().unwrap();
+    let history = use_history().expect("navigation bar instantiated outside of the router");
     let onclick = Callback::once(move |e: MouseEvent| {
         e.prevent_default();
 

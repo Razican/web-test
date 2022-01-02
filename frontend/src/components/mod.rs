@@ -26,8 +26,8 @@ pub enum Msg {}
 pub fn app() -> Html {
     html! {
         <>
-            <Nav />
             <BrowserRouter>
+                <Nav />
                 <Switch<Route> render={Switch::render(switch)} />
             </BrowserRouter>
         </>
