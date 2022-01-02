@@ -4,6 +4,7 @@
 //! along with helper functions to manipulate the required data.
 
 pub mod model;
+#[rustfmt::skip]
 mod schema;
 pub mod user;
 
