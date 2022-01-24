@@ -1,10 +1,11 @@
 use crate::{db, notification, BASE_URL};
+use common::registration::{Email, ResponseDTO, SubmitDTO};
 use once_cell::sync::Lazy;
 use rand::{distributions, thread_rng, Rng};
 use regex::Regex;
 use rocket::{http::Status, post, serde::json::Json, tokio::task::spawn_blocking};
-use serde::Deserialize;
 use std::{io, sync::Arc};
+use zxcvbn::{zxcvbn, ZxcvbnError};
 
 static VALID_EMAIL: Lazy<Regex> = Lazy::new(|| {
     Regex::new(r"([^@]+)@([^@]+\.[^@]+)")
@@ -29,23 +30,17 @@ const FORBIDDEN_DOMAINS: [&str; 15] = [
     "example.com",
 ];
 
-/// Email registration form data.
-#[derive(Deserialize)]
-pub struct Email<'r> {
-    email: &'r str,
-}
-
 /// Register a given email
 #[post("/register/email", format = "json", data = "<email>")]
 pub async fn email(
     conn: db::Connection,
     email: Json<Email<'_>>,
-) -> io::Result<(Status, Json<&'static str>)> {
+) -> io::Result<(Status, Option<Json<&'static str>>)> {
     let email = Arc::new(email.into_inner().email.trim().to_owned());
 
     // Check if the email is correct:
     if !VALID_EMAIL.is_match(&email) {
-        return Ok((Status::BadRequest, Json("invalid email")));
+        return Ok((Status::BadRequest, Some(Json("invalid email"))));
     }
     let cap = VALID_EMAIL
         .captures(&email)
@@ -61,7 +56,7 @@ pub async fn email(
         .into_iter()
         .any(|forbidden| forbidden == domain)
     {
-        return Ok((Status::BadRequest, Json("email not allowed")));
+        return Ok((Status::BadRequest, Some(Json("email not allowed"))));
     }
 
     // Checks if there was an existing user with the email
@@ -72,7 +67,7 @@ pub async fn email(
         .is_some()
     {
         // You don't want to give information about the existence of the user in the DB
-        return Ok((Status::Ok, Json("success")));
+        return Ok((Status::Ok, None));
     }
 
     // TODO: check if email registered recently (do not send more than one per 10 minutes)
@@ -117,7 +112,7 @@ pub async fn email(
     spawn_blocking(move || notification::email::send(&email, "Registration in MySupport", body))
         .await??;
 
-    Ok((Status::Ok, Json("success")))
+    Ok((Status::Ok, None))
 }
 
 /// Creates a random registration code.
@@ -131,22 +126,67 @@ fn rand_reg_code() -> String {
     String::from_utf8(vec).expect("invalid code generated")
 }
 
-/// User registration form data.
-#[derive(Deserialize)]
-pub struct User<'r> {
-    email: &'r str,
-    username: &'r str,
-    password: &'r str,
-}
-
 /// Register a user from a given code
 #[post("/register/user/<code>", format = "json", data = "<user>")]
-pub fn register(code: &str, user: Json<User<'_>>) {
+pub async fn register(
+    conn: db::Connection,
+    code: String,
+    user: Json<SubmitDTO<'_>>,
+) -> io::Result<(Status, Option<Json<ResponseDTO>>)> {
     let user = user.into_inner();
-    // TODO: check if code is correct, retrieve email from it
-    // TODO: check if emails are the same
-    // TODO: check that the user is unique
-    // TODO: Check that the password fulfills requirements
-    // TODO: Register user and respond
-    todo!();
+
+    let email_registration = conn
+        .run(move |c| db::user::get_email_registration_with_code(c, &code))
+        .await?;
+
+    let email = if let Some(reg) = email_registration {
+        Arc::new(reg.email)
+    } else {
+        return Ok((Status::BadRequest, Some(Json("invalid registration code"))));
+    };
+
+    let cloned_email = email.clone();
+    let db_user = conn
+        .run(move |c| db::user::get_with_email(c, &cloned_email))
+        .await?;
+
+    if db_user.is_some() {
+        return Ok((Status::BadRequest, Some(Json("user already exists"))));
+    }
+
+    let entropy = match zxcvbn(
+        user.password,
+        &[&email, user.username, user.first_name, user.last_name],
+    ) {
+        Ok(ent) => ent,
+        Err(e) => match e {
+            ZxcvbnError::BlankPassword => {
+                return Ok((Status::BadRequest, Some(Json("blank password not allowed"))))
+            }
+            ZxcvbnError::DurationOutOfRange => {
+                return Err(io::Error::new(io::ErrorKind::Other, e.to_string()))
+            }
+        },
+    };
+
+    if entropy.score() < 3 {
+        return Ok((
+            Status::BadRequest,
+            Some(Json("password entropy is too low")),
+        ));
+    }
+
+    let (username, password, first_name, last_name) = (
+        user.username.to_owned(),
+        user.password.as_bytes().to_owned(),
+        user.first_name.to_owned(),
+        user.last_name.to_owned(),
+    );
+
+    conn.run(move |c| {
+        db::user::insert_user(c, &username, &email, &password, &first_name, &last_name)
+    })
+    .await?;
+
+    Ok((Status::Ok, None))
 }

@@ -1,7 +1,8 @@
 //! Email registration component.
 
+use common::registration::Email;
 use reqwasm::http::Request;
-use serde_json::{json, to_string};
+use serde_json::to_string;
 use wasm_bindgen::JsCast;
 use web_sys::HtmlInputElement;
 use yew::prelude::*;
@@ -9,14 +10,18 @@ use yew::prelude::*;
 /// Component messages.
 #[derive(Debug)]
 pub enum Msg {
-    Email(String),
-    TncCheckbox(bool),
+    /// Form submitted.
     Submitted,
-    ServerResponse(Result<String, String>),
+    /// Email input change.
+    Email(String),
+    /// T&C checkbox change.
+    TncCheckbox(bool),
+    /// Server response.
+    ServerResponse(Result<(), String>),
 }
 
 /// Email registration component.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct EmailRegistration {
     email: String,
     email_err: Option<String>,
@@ -31,14 +36,7 @@ impl Component for EmailRegistration {
     type Properties = ();
 
     fn create(_ctx: &Context<Self>) -> Self {
-        Self {
-            email: String::new(),
-            email_err: None,
-            email_input_node: NodeRef::default(),
-            tnc_checkbox: false,
-            submitted: false,
-            submit_ok: false,
-        }
+        Self::default()
     }
 
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
@@ -69,17 +67,21 @@ impl Component for EmailRegistration {
                     let response = Request::post("/api/v1/register/email")
                         .header("Accept", "application/json")
                         .header("Content-Type", "application/json")
-                        .body(to_string(&json!({ "email": email })).unwrap())
+                        .body(to_string(&Email::new(&email)).unwrap())
                         .send()
                         .await
                         .unwrap();
 
-                    let res = response
-                        .json()
-                        .await
-                        .expect("could not parse JSON response");
+                    Msg::ServerResponse(if response.ok() {
+                        Ok(())
+                    } else {
+                        let res = response
+                            .json()
+                            .await
+                            .expect("could not parse JSON response");
 
-                    Msg::ServerResponse(if response.ok() { Ok(res) } else { Err(res) })
+                        Err(res)
+                    })
                 });
 
                 true
@@ -90,7 +92,6 @@ impl Component for EmailRegistration {
                     true
                 }
                 Err(res) => {
-                    gloo_console::log!("ERR: ", &res);
                     self.submitted = false;
                     self.email_err = Some(res);
                     true

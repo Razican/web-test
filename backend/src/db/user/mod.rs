@@ -19,6 +19,31 @@ pub fn get_with_email(conn: &mut PgConnection, email: &str) -> io::Result<Option
     into_option(user)
 }
 
+/// Inserts a new user into the database.
+pub fn insert_user(
+    conn: &mut PgConnection,
+    username: &str,
+    email: &str,
+    password: &[u8],
+    first_name: &str,
+    last_name: &str,
+) -> io::Result<()> {
+    let new_record = model::NewUser {
+        active: true,
+        username,
+        email,
+        password,
+        first_name,
+        last_name,
+    };
+
+    diesel::insert_into(sys_user::table)
+        .values(&new_record)
+        .execute(conn)
+        .map(|_count| ())
+        .map_err(into_io_err)
+}
+
 /// Retrieves a registration email with a given code, if it exists.
 pub fn get_email_registration_with_code(
     conn: &mut PgConnection,
@@ -39,7 +64,7 @@ pub fn get_email_registration_with_code(
     into_option(email_reg)
 }
 
-/// Inserts the new email inthe registration list
+/// Inserts the new email inthe registration list.
 pub fn insert_email_registration(
     conn: &mut PgConnection,
     email: &str,
@@ -65,6 +90,7 @@ pub fn delete_email_registrations_for_email(
 }
 
 /// Cleans up old email registrations.
+#[allow(dead_code)]
 pub fn cleanup_old_email_registrations(conn: &mut PgConnection) -> io::Result<()> {
     let now = Utc::now();
     let timeout = Duration::seconds(EMAIL_CODE_TIMEOUT);

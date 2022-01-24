@@ -1,4 +1,4 @@
-use crate::db::schema::sys_email_registration;
+use crate::db::schema::{sys_email_registration, sys_user};
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
@@ -27,11 +27,34 @@ pub struct User {
     pub updated_on: DateTime<Utc>,
 }
 
+/// Insertable user.
+#[derive(Debug, Clone, Insertable)]
+#[table_name = "sys_user"]
+pub struct NewUser<'n> {
+    /// Wether the user is active or not.
+    pub active: bool,
+    /// The username of the user.
+    pub username: &'n str,
+    /// The email of the user.
+    ///
+    /// It is guaranteed to contain an `@` symbol.
+    pub email: &'n str,
+    /// The password hash of the user.
+    pub password: &'n [u8],
+    /// The first name(s) of the user.
+    pub first_name: &'n str,
+    /// The last name(s) of the user.
+    pub last_name: &'n str,
+}
+
 /// Structure representing an email registration in the database.
 #[derive(Debug, Clone, Queryable)]
 pub struct EmailRegistration {
+    /// Unique email registration code.
     pub code: String,
+    /// Email for the registration.
     pub email: String,
+    /// Creation date of the email registration.
     pub created_on: DateTime<Utc>,
 }
 
@@ -39,6 +62,8 @@ pub struct EmailRegistration {
 #[derive(Debug, Clone, Insertable)]
 #[table_name = "sys_email_registration"]
 pub struct NewEmailRegistration<'n> {
+    /// Unique email registration code.
     pub code: &'n str,
+    /// Email for the email registration.
     pub email: &'n str,
 }
