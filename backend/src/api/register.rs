@@ -142,8 +142,12 @@ pub async fn register(
     let email = if let Some(reg) = email_registration {
         Arc::new(reg.email)
     } else {
-        return Ok((Status::BadRequest, Some(Json("invalid registration code"))));
+        let mut response = ResponseDTO::default();
+        response.set_other("invalid registration code");
+        return Ok((Status::BadRequest, Some(Json(response))));
     };
+
+    let mut response: Option<ResponseDTO> = None;
 
     let cloned_email = email.clone();
     let db_user = conn
@@ -151,17 +155,37 @@ pub async fn register(
         .await?;
 
     if db_user.is_some() {
-        return Ok((Status::BadRequest, Some(Json("user already exists"))));
+        response = Some(Default::default());
+        response
+            .as_mut()
+            .unwrap()
+            .set_username("user already exists");
     }
 
-    let entropy = match zxcvbn(
+    match zxcvbn(
         user.password,
         &[&email, user.username, user.first_name, user.last_name],
     ) {
-        Ok(ent) => ent,
+        Ok(entropy) => {
+            if entropy.score() < 3 {
+                if response.is_none() {
+                    response = Some(Default::default());
+                }
+                response
+                    .as_mut()
+                    .unwrap()
+                    .set_password("password entropy is too low");
+            }
+        }
         Err(e) => match e {
             ZxcvbnError::BlankPassword => {
-                return Ok((Status::BadRequest, Some(Json("blank password not allowed"))))
+                if response.is_none() {
+                    response = Some(Default::default());
+                }
+                response
+                    .as_mut()
+                    .unwrap()
+                    .set_password("blank password not allowed");
             }
             ZxcvbnError::DurationOutOfRange => {
                 return Err(io::Error::new(io::ErrorKind::Other, e.to_string()))
@@ -169,24 +193,26 @@ pub async fn register(
         },
     };
 
-    if entropy.score() < 3 {
-        return Ok((
-            Status::BadRequest,
-            Some(Json("password entropy is too low")),
-        ));
+    if response.is_none() {
+        let (username, password, first_name, last_name) = (
+            user.username.to_owned(),
+            user.password.as_bytes().to_owned(),
+            user.first_name.to_owned(),
+            user.last_name.to_owned(),
+        );
+
+        conn.run(move |c| {
+            db::user::insert_user(c, &username, &email, &password, &first_name, &last_name)
+        })
+        .await?;
     }
 
-    let (username, password, first_name, last_name) = (
-        user.username.to_owned(),
-        user.password.as_bytes().to_owned(),
-        user.first_name.to_owned(),
-        user.last_name.to_owned(),
-    );
-
-    conn.run(move |c| {
-        db::user::insert_user(c, &username, &email, &password, &first_name, &last_name)
-    })
-    .await?;
-
-    Ok((Status::Ok, None))
+    Ok((
+        if response.is_none() {
+            Status::Ok
+        } else {
+            Status::BadRequest
+        },
+        response.map(Json),
+    ))
 }

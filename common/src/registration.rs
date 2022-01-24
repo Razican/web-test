@@ -45,11 +45,37 @@ impl<'d> SubmitDTO<'d> {
 }
 
 /// Data Transfer Object used from the server when transferring submission results to the client.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct ResponseDTO {
     #[serde(rename = "user")]
     pub username: Option<String>,
     #[serde(rename = "pass")]
     pub password: Option<String>,
     pub other: Option<String>,
+}
+
+impl ResponseDTO {
+    /// Adds a username error to the response.
+    pub fn set_username<E>(&mut self, err: E)
+    where
+        E: Into<String>,
+    {
+        self.username = Some(err.into());
+    }
+
+    /// Adds a password error to the response.
+    pub fn set_password<E>(&mut self, err: E)
+    where
+        E: Into<String>,
+    {
+        self.password = Some(err.into());
+    }
+
+    /// Adds a other error to the response.
+    pub fn set_other<E>(&mut self, err: E)
+    where
+        E: Into<String>,
+    {
+        self.other = Some(err.into());
+    }
 }

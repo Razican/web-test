@@ -8,7 +8,7 @@ use std::io;
 mod tests;
 
 /// Timeout for email registration codes, in seconds.
-const EMAIL_CODE_TIMEOUT: i64 = 10 * 60;
+const EMAIL_CODE_TIMEOUT: i64 = 2 * 60 * 60;
 
 /// Retrieves a user with an email, if it exists.
 pub fn get_with_email(conn: &mut PgConnection, email: &str) -> io::Result<Option<model::User>> {
