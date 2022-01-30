@@ -51,13 +51,13 @@ pub fn get_email_registration_with_code(
 ) -> io::Result<Option<model::EmailRegistration>> {
     let now = Utc::now();
     let timeout = Duration::seconds(EMAIL_CODE_TIMEOUT);
-    let ten_mins_ago = now - timeout;
+    let limit = now - timeout;
 
     let email_reg = sys_email_registration::table
         .filter(
             sys_email_registration::code
                 .eq(code)
-                .and(sys_email_registration::created_on.ge(ten_mins_ago)),
+                .and(sys_email_registration::created_on.ge(limit)),
         )
         .first::<model::EmailRegistration>(conn);
 
