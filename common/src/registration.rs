@@ -44,7 +44,7 @@ impl<'d> SubmitDTO<'d> {
     }
 }
 
-/// Data Transfer Object used from the server when transferring submission results to the client.
+/// Data Transfer Object used from the server when transferring submission errors to the client.
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct ResponseDTO {
     #[serde(rename = "user")]
@@ -77,5 +77,10 @@ impl ResponseDTO {
         E: Into<String>,
     {
         self.other = Some(err.into());
+    }
+
+    /// Checks if no errors have been set in the response
+    pub fn is_ok(&self) -> bool {
+        self.username.is_none() && self.password.is_none() && self.other.is_none()
     }
 }

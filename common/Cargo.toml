@@ -11,4 +11,4 @@ Service Management application. Common functionality
 """
 
 [dependencies]
-serde = { version = "1.0.133", features = ["derive"] }
+serde = { version = "1.0.136", features = ["derive"] }

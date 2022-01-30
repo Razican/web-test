@@ -1,9 +1,10 @@
 use crate::{db, notification, BASE_URL};
 use common::registration::{Email, ResponseDTO, SubmitDTO};
 use once_cell::sync::Lazy;
-use rand::{distributions, thread_rng, Rng};
+use rand::{distributions, thread_rng, Rng, RngCore};
 use regex::Regex;
 use rocket::{http::Status, post, serde::json::Json, tokio::task::spawn_blocking};
+use sha3::{Digest, Sha3_256};
 use std::{io, sync::Arc};
 use zxcvbn::{zxcvbn, ZxcvbnError};
 
@@ -35,12 +36,12 @@ const FORBIDDEN_DOMAINS: [&str; 15] = [
 pub async fn email(
     conn: db::Connection,
     email: Json<Email<'_>>,
-) -> io::Result<(Status, Option<Json<&'static str>>)> {
+) -> io::Result<(Status, Json<&'static str>)> {
     let email = Arc::new(email.into_inner().email.trim().to_owned());
 
     // Check if the email is correct:
     if !VALID_EMAIL.is_match(&email) {
-        return Ok((Status::BadRequest, Some(Json("invalid email"))));
+        return Ok((Status::BadRequest, Json("invalid email")));
     }
     let cap = VALID_EMAIL
         .captures(&email)
@@ -56,7 +57,7 @@ pub async fn email(
         .into_iter()
         .any(|forbidden| forbidden == domain)
     {
-        return Ok((Status::BadRequest, Some(Json("email not allowed"))));
+        return Ok((Status::BadRequest, Json("email not allowed")));
     }
 
     // Checks if there was an existing user with the email
@@ -67,7 +68,7 @@ pub async fn email(
         .is_some()
     {
         // You don't want to give information about the existence of the user in the DB
-        return Ok((Status::Ok, None));
+        return Ok((Status::Ok, Json("")));
     }
 
     // TODO: check if email registered recently (do not send more than one per 10 minutes)
@@ -112,7 +113,7 @@ pub async fn email(
     spawn_blocking(move || notification::email::send(&email, "Registration in MySupport", body))
         .await??;
 
-    Ok((Status::Ok, None))
+    Ok((Status::Ok, Json("")))
 }
 
 /// Creates a random registration code.
@@ -132,8 +133,9 @@ pub async fn register(
     conn: db::Connection,
     code: String,
     user: Json<SubmitDTO<'_>>,
-) -> io::Result<(Status, Option<Json<ResponseDTO>>)> {
+) -> io::Result<(Status, Json<ResponseDTO>)> {
     let user = user.into_inner();
+    let mut response = ResponseDTO::default();
 
     let email_registration = conn
         .run(move |c| db::user::get_email_registration_with_code(c, &code))
@@ -142,12 +144,9 @@ pub async fn register(
     let email = if let Some(reg) = email_registration {
         Arc::new(reg.email)
     } else {
-        let mut response = ResponseDTO::default();
         response.set_other("invalid registration code");
-        return Ok((Status::BadRequest, Some(Json(response))));
+        return Ok((Status::BadRequest, Json(response)));
     };
-
-    let mut response: Option<ResponseDTO> = None;
 
     let cloned_email = email.clone();
     let db_user = conn
@@ -155,11 +154,7 @@ pub async fn register(
         .await?;
 
     if db_user.is_some() {
-        response = Some(Default::default());
-        response
-            .as_mut()
-            .unwrap()
-            .set_username("user already exists");
+        response.set_username("user already exists");
     }
 
     match zxcvbn(
@@ -168,24 +163,12 @@ pub async fn register(
     ) {
         Ok(entropy) => {
             if entropy.score() < 3 {
-                if response.is_none() {
-                    response = Some(Default::default());
-                }
-                response
-                    .as_mut()
-                    .unwrap()
-                    .set_password("password entropy is too low");
+                response.set_password("password entropy is too low");
             }
         }
         Err(e) => match e {
             ZxcvbnError::BlankPassword => {
-                if response.is_none() {
-                    response = Some(Default::default());
-                }
-                response
-                    .as_mut()
-                    .unwrap()
-                    .set_password("blank password not allowed");
+                response.set_password("blank password not allowed");
             }
             ZxcvbnError::DurationOutOfRange => {
                 return Err(io::Error::new(io::ErrorKind::Other, e.to_string()))
@@ -193,10 +176,24 @@ pub async fn register(
         },
     };
 
-    if response.is_none() {
+    if response.is_ok() {
+        let mut salt = [0u8; 10];
+        thread_rng().fill_bytes(&mut salt); // Salt
+
+        let mut hasher = Sha3_256::new();
+        hasher.update(&salt);
+        hasher.update(user.password.as_bytes());
+
+        let result = hasher.finalize();
+        let mut db_pass = Vec::with_capacity(42);
+        db_pass.extend_from_slice(&salt);
+        db_pass.extend_from_slice(&result[..]);
+
+        debug_assert_eq!(db_pass.len(), 42);
+
         let (username, password, first_name, last_name) = (
             user.username.to_owned(),
-            user.password.as_bytes().to_owned(),
+            db_pass,
             user.first_name.to_owned(),
             user.last_name.to_owned(),
         );
@@ -205,14 +202,9 @@ pub async fn register(
             db::user::insert_user(c, &username, &email, &password, &first_name, &last_name)
         })
         .await?;
-    }
 
-    Ok((
-        if response.is_none() {
-            Status::Ok
-        } else {
-            Status::BadRequest
-        },
-        response.map(Json),
-    ))
+        Ok((Status::Ok, Json(response)))
+    } else {
+        Ok((Status::BadRequest, Json(response)))
+    }
 }

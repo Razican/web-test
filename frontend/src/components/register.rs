@@ -79,14 +79,20 @@ impl Component for RegistrationForm {
             Msg::FirstName(first_name) => {
                 if self.first_name != first_name {
                     self.first_name = first_name;
+
+                    true
+                } else {
+                    false
                 }
-                false
             }
             Msg::LastName(last_name) => {
                 if self.last_name != last_name {
                     self.last_name = last_name;
+
+                    true
+                } else {
+                    false
                 }
-                false
             }
             Msg::Submitted => {
                 self.submitted = true;
@@ -138,9 +144,6 @@ impl Component for RegistrationForm {
                     password,
                     other,
                 }) => {
-                    gloo_console::log!("ERR (user): ", username.clone());
-                    gloo_console::log!("ERR (pass): ", password.clone());
-                    gloo_console::log!("ERR (other): ", other.clone());
                     self.submitted = false;
                     self.user_err = username;
                     self.pass_err = password;
