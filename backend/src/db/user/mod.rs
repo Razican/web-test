@@ -94,10 +94,10 @@ pub fn delete_email_registrations_for_email(
 pub fn cleanup_old_email_registrations(conn: &mut PgConnection) -> io::Result<()> {
     let now = Utc::now();
     let timeout = Duration::seconds(EMAIL_CODE_TIMEOUT);
-    let ten_mins_ago = now - timeout;
+    let limit = now - timeout;
 
     diesel::delete(
-        sys_email_registration::table.filter(sys_email_registration::created_on.lt(ten_mins_ago)),
+        sys_email_registration::table.filter(sys_email_registration::created_on.lt(limit)),
     )
     .execute(conn)
     .map(|_count| ())
