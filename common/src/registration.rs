@@ -27,23 +27,6 @@ pub struct SubmitDTO<'d> {
     pub last_name: &'d str,
 }
 
-impl<'d> SubmitDTO<'d> {
-    /// Creates a new `SubmitDTO`.
-    pub fn new(
-        username: &'d str,
-        password: &'d str,
-        first_name: &'d str,
-        last_name: &'d str,
-    ) -> Self {
-        Self {
-            username,
-            password,
-            first_name,
-            last_name,
-        }
-    }
-}
-
 /// Data Transfer Object used from the server when transferring submission errors to the client.
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct ResponseDTO {
@@ -55,30 +38,6 @@ pub struct ResponseDTO {
 }
 
 impl ResponseDTO {
-    /// Adds a username error to the response.
-    pub fn set_username<E>(&mut self, err: E)
-    where
-        E: Into<String>,
-    {
-        self.username = Some(err.into());
-    }
-
-    /// Adds a password error to the response.
-    pub fn set_password<E>(&mut self, err: E)
-    where
-        E: Into<String>,
-    {
-        self.password = Some(err.into());
-    }
-
-    /// Adds a other error to the response.
-    pub fn set_other<E>(&mut self, err: E)
-    where
-        E: Into<String>,
-    {
-        self.other = Some(err.into());
-    }
-
     /// Checks if no errors have been set in the response
     pub fn is_ok(&self) -> bool {
         self.username.is_none() && self.password.is_none() && self.other.is_none()

@@ -108,12 +108,12 @@ impl Component for RegistrationForm {
                         .header("Accept", "application/json")
                         .header("Content-Type", "application/json")
                         .body(
-                            to_string(&SubmitDTO::new(
-                                &username,
-                                &password,
-                                &first_name,
-                                &last_name,
-                            ))
+                            to_string(&SubmitDTO {
+                                username: &username,
+                                password: &password,
+                                first_name: &first_name,
+                                last_name: &last_name,
+                            })
                             .expect("could not serialize form DTO to JSON"),
                         )
                         .send()

@@ -8,10 +8,9 @@ pub mod model;
 mod schema;
 pub mod user;
 
-use std::io;
-
 use diesel::{PgConnection, QueryResult};
 use rocket_sync_db_pools::database;
+use std::io;
 
 /// PostgreSQL database connection.
 #[database("main")]

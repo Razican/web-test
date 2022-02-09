@@ -1,3 +1,4 @@
+use crate::into_io_err;
 use lettre::{
     message::{IntoBody, Mailbox},
     transport::smtp::authentication::Credentials,
@@ -5,8 +6,6 @@ use lettre::{
 };
 use once_cell::sync::Lazy;
 use std::{env, io};
-
-use crate::into_io_err;
 
 static FROM_EMAIL: Lazy<Mailbox> = Lazy::new(|| {
     let from_str = env::var("FROM_EMAIL").expect("FROM_EMAIL environment variable not supplied");

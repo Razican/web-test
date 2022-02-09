@@ -9,11 +9,11 @@ use std::{io, sync::Arc};
 use zxcvbn::{zxcvbn, ZxcvbnError};
 
 static VALID_EMAIL: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"([^@]+)@([^@]+\.[^@]+)")
+    Regex::new(r"[^@]+@([^@]+\.[^@]+)")
         .expect("could not compile the valid email regular expression")
 });
 
-const FORBIDDEN_DOMAINS: [&str; 15] = [
+const FORBIDDEN_DOMAINS: [&str; 16] = [
     "mailinator.com",
     "vusra.com",
     "tormails.com",
@@ -29,6 +29,7 @@ const FORBIDDEN_DOMAINS: [&str; 15] = [
     "easyonlinemail.net",
     "freemailonline.us",
     "example.com",
+    "test.com",
 ];
 
 /// Register a given email
@@ -48,7 +49,7 @@ pub async fn email(
         .expect("couldn't get captures for email address after validation");
 
     let domain = cap
-        .get(2)
+        .get(1)
         .expect("email domain disappeared")
         .as_str()
         .to_lowercase();
@@ -144,7 +145,7 @@ pub async fn register(
     let email = if let Some(reg) = email_registration {
         Arc::new(reg.email)
     } else {
-        response.set_other("invalid registration code");
+        response.other = Some("invalid registration code".to_owned());
         return Ok((Status::BadRequest, Json(response)));
     };
 
@@ -154,7 +155,7 @@ pub async fn register(
         .await?;
 
     if db_user.is_some() {
-        response.set_username("user already exists");
+        response.username = Some("user already exists".to_owned());
     }
 
     match zxcvbn(
@@ -163,12 +164,12 @@ pub async fn register(
     ) {
         Ok(entropy) => {
             if entropy.score() < 3 {
-                response.set_password("password entropy is too low");
+                response.password = Some("password entropy is too low".to_owned());
             }
         }
         Err(e) => match e {
             ZxcvbnError::BlankPassword => {
-                response.set_password("blank password not allowed");
+                response.password = Some("blank password not allowed".to_owned());
             }
             ZxcvbnError::DurationOutOfRange => {
                 return Err(io::Error::new(io::ErrorKind::Other, e.to_string()))
