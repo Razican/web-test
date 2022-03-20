@@ -1,6 +1,5 @@
-use std::collections::HashMap;
-
 use crate::router::Route;
+use std::collections::HashMap;
 use wasm_bindgen::JsCast;
 use web_sys::HtmlElement;
 use yew::prelude::*;

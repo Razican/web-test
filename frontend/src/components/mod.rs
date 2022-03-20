@@ -17,10 +17,6 @@ pub use register::*;
 use yew::prelude::*;
 use yew_router::prelude::*;
 
-/// Component messages.
-#[derive(Debug)]
-pub enum Msg {}
-
 /// Main component for the MySupport application.
 #[function_component(Main)]
 pub fn app() -> Html {

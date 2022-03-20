@@ -25,7 +25,7 @@ impl Component for Login {
 
     fn view(&self, _ctx: &Context<Self>) -> Html {
         html! {
-            <div class="container">{{"Login"}}</div>
+            <main class="container">{{"Login"}}</main>
         }
     }
 }

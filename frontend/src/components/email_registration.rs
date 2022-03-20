@@ -1,11 +1,13 @@
 //! Email registration component.
 
+use crate::router::Route;
 use common::registration::Email;
 use reqwasm::http::Request;
 use serde_json::to_string;
 use wasm_bindgen::JsCast;
 use web_sys::HtmlInputElement;
 use yew::prelude::*;
+use yew_router::{history::History, hooks::use_history};
 
 /// Component messages.
 #[derive(Debug)]
@@ -153,7 +155,7 @@ impl EmailRegistration {
 
         html! {
             <>
-                <h2>{{"Register your email"}}</h2>
+                <h2>{"Register your email"}</h2>
                 <form {onsubmit}>
                     <div>
                         <label for="email" class="form-label">{"Email address"}</label>
@@ -181,11 +183,17 @@ impl EmailRegistration {
 
     /// Renders the email registration confirmation.
     fn confirmation(&self, _ctx: &Context<Self>) -> Html {
+        let history = use_history().expect("component outside of the router");
+        let onclick = Callback::once(move |e: MouseEvent| {
+            e.prevent_default();
+            history.push(Route::Home)
+        });
+
         html! {
             <>
                 <h2>{"Registration successful!"}</h2>
                 <p>{"If you provided a correct email address, you will soon receive an email to continue your registration process"}</p>
-                <p><a href="/" title="Home">{"Return home"}</a></p>
+                <p><a href="/" title="Home" {onclick}>{"Return home"}</a></p>
             </>
         }
     }

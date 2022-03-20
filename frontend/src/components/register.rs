@@ -1,11 +1,13 @@
 //! Registration form.
 
+use crate::router::Route;
 use common::registration::{ResponseDTO, SubmitDTO};
 use reqwasm::http::Request;
 use serde_json::to_string;
 use wasm_bindgen::JsCast;
 use web_sys::HtmlInputElement;
 use yew::prelude::*;
+use yew_router::{history::History, hooks::use_history};
 
 /// Component messages.
 #[derive(Debug)]
@@ -39,7 +41,6 @@ pub struct RegistrationForm {
     submit_ok: bool,
     username: String,
     user_err: Option<String>,
-    user_input_node: NodeRef,
     password: String,
     pass_err: Option<String>,
     first_name: String,
@@ -183,25 +184,18 @@ impl Component for RegistrationForm {
 impl RegistrationForm {
     /// Renders the registration form.
     fn form(&self, ctx: &Context<Self>) -> Html {
-        let user_input = ctx.link().callback(|e: InputEvent| {
+        let oninput = ctx.link().callback(|e: InputEvent| {
             let target = e.target().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+            let name = target.name();
+            let value = target.value();
 
-            Msg::Username(target.value())
-        });
-        let pass_input = ctx.link().callback(|e: InputEvent| {
-            let target = e.target().unwrap().dyn_into::<HtmlInputElement>().unwrap();
-
-            Msg::Password(target.value())
-        });
-        let first_name_input = ctx.link().callback(|e: InputEvent| {
-            let target = e.target().unwrap().dyn_into::<HtmlInputElement>().unwrap();
-
-            Msg::FirstName(target.value())
-        });
-        let last_name_input = ctx.link().callback(|e: InputEvent| {
-            let target = e.target().unwrap().dyn_into::<HtmlInputElement>().unwrap();
-
-            Msg::LastName(target.value())
+            match name.as_str() {
+                "username" => Msg::Username(value),
+                "password" => Msg::Password(value),
+                "first_name" => Msg::FirstName(value),
+                "last_name" => Msg::LastName(value),
+                other => panic!("unexpected input name: {other}"),
+            }
         });
 
         let onsubmit = ctx.link().callback(|e: FocusEvent| {
@@ -216,10 +210,10 @@ impl RegistrationForm {
                 <form {onsubmit}>
                     <div>
                         <label for="username" class="form-label">{"Username"}</label>
-                        <input ref={self.user_input_node.clone()} type="text"
+                        <input type="text" name="username"
                             class={if self.user_err.is_some() {"form-control is-invalid"} else {"form-control"}}
-                            id="username" aria-describedby={if self.user_err.is_some() {"euserValidationFeedback"} else {"userHelp"}}
-                            placeholder="Username" required=true oninput={user_input} />
+                            id="username" aria-describedby={if self.user_err.is_some() {"userValidationFeedback"} else {"userHelp"}}
+                            placeholder="Username" required=true oninput={oninput.clone()} />
                         {
                             if let Some(ref err) = self.user_err {
                                 html! {<div id="userValidationFeedback" class="invalid-feedback">{"Error: "}{err}</div>}
@@ -230,10 +224,10 @@ impl RegistrationForm {
                     </div>
                     <div>
                         <label for="password" class="form-label">{"Password"}</label>
-                        <input type="password"
+                        <input type="password" name="password"
                             class={if self.pass_err.is_some() {"form-control is-invalid"} else {"form-control"}}
                             id="password" aria-describedby={if self.pass_err.is_some() {"passValidationFeedback"} else {"passHelp"}}
-                            required=true oninput={pass_input} />
+                            required=true oninput={oninput.clone()} />
                         {
                             if let Some(ref err) = self.pass_err {
                                 html! {<div id="passValidationFeedback" class="invalid-feedback">{"Error: "}{err}</div>}
@@ -244,13 +238,13 @@ impl RegistrationForm {
                     </div>
                     <div>
                         <label for="first_name" class="form-label">{"First name(s)"}</label>
-                        <input type="text" class="form-control" id="first_name"
-                            aria-describedby="firstNameHelp" required=true oninput={first_name_input} />
+                        <input type="text" class="form-control" id="first_name" name="first_name"
+                            aria-describedby="firstNameHelp" required=true oninput={oninput.clone()} />
                     </div>
                     <div>
                         <label for="last_name" class="form-label">{"Last name(s)"}</label>
-                        <input type="text" class="form-control" id="last_name"
-                            aria-describedby="lastNameHelp" required=true oninput={last_name_input} />
+                        <input type="text" class="form-control" id="last_name" name="last_name"
+                            aria-describedby="lastNameHelp" required=true {oninput} />
                     </div>
                     <button type="submit" class="btn btn-primary" disabled={
                         self.submitted || self.username.is_empty() ||
@@ -263,22 +257,34 @@ impl RegistrationForm {
 
     /// Renders the registration confirmation.
     fn confirmation(&self) -> Html {
+        let history = use_history().expect("component outside of the router");
+        let onclick = Callback::once(move |e: MouseEvent| {
+            e.prevent_default();
+            history.push(Route::Home)
+        });
+
         html! {
             <>
                 <h2>{"Registration successful!"}</h2>
                 <p>{"You can now log in."}</p>
-                <p><a href="/" title="Home">{"Return home"}</a></p>
+                <p><a href="/" title="Home" {onclick}>{"Return home"}</a></p>
             </>
         }
     }
 
     /// Renders a general error message.
     fn general_error(&self) -> Html {
+        let history = use_history().expect("component outside of the router");
+        let onclick = Callback::once(move |e: MouseEvent| {
+            e.prevent_default();
+            history.push(Route::Home)
+        });
+
         html! {
             <>
                 <h2>{"An error occurred"}</h2>
                 <p>{self.general_err.as_ref().expect("no general error found")}</p>
-                <p><a href="/" title="Home">{"Return home"}</a></p>
+                <p><a href="/" title="Home" {onclick}>{"Return home"}</a></p>
             </>
         }
     }
